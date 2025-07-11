@@ -22,7 +22,8 @@ include_directories(
 
 add_executable(cuda_gemm
     src/main.cu
-    src/00_trivial.cu
+    src/00_naive.cu
+    src/01_coalesced.cu
     src/utils/utils.cpp
 )
 

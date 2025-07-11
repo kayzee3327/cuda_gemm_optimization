@@ -67,31 +67,39 @@ int main() {
         cudaMemcpy(d_A, h_A, M * K * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_B, h_B, K * N * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_C, h_C, M * N * sizeof(float), cudaMemcpyHostToDevice);
-        
-        // Record the start event in the stream
-        cudaEventRecord(start, stream);
 
-        fp32gemm<<<numBlocks, threadPerBlock>>>(d_A, d_B, d_C, M, N, K, alpha, beta);
-
-        // Record the stop event in the stream
-        cudaEventRecord(stop, stream);
-
-        //Note: It's good practice to explicitly specify the stream (stream) to 
-        //ensure the events and the kernel are in the same execution sequence.
-
-        // Wait for the stop event to be recorded
-        cudaError_t syncErr = cudaEventSynchronize(stop);
-        if (syncErr != cudaSuccess) {
-            fprintf(stderr, "Sync error: %s\n", cudaGetErrorString(syncErr));
+        {
+            // Record the start event in the stream
+            cudaEventRecord(start, stream);
+            fp32gemm<<<numBlocks, threadPerBlock>>>(d_A, d_B, d_C, M, N, K, alpha, beta);
+            // Record the stop event in the stream
+            cudaEventRecord(stop, stream);
+            //Note: It's good practice to explicitly specify the stream (stream) to 
+            //ensure the events and the kernel are in the same execution sequence.
+            // Wait for the stop event to be recorded
+            cudaError_t syncErr = cudaEventSynchronize(stop);
+            if (syncErr != cudaSuccess) {
+                fprintf(stderr, "Sync error: %s\n", cudaGetErrorString(syncErr));
+            }
+            cudaError_t kernelErr = cudaGetLastError();
+            if (kernelErr != cudaSuccess) {
+                fprintf(stderr, "naive execution error: %s\n", cudaGetErrorString(kernelErr));
+            }
+            // Calculate the elapsed time between the start and stop events
+            cudaEventElapsedTime(&milliseconds, start, stop);
+            printf("00_naive execution time: %f ms\n", milliseconds);
         }
-
-        cudaError_t kernelErr = cudaGetLastError();
-        if (kernelErr != cudaSuccess) {
-            fprintf(stderr, "Kernel execution error: %s\n", cudaGetErrorString(kernelErr));
+        {
+            cudaEventRecord(start, stream);
+            coalesced_fp32gemm<<<numBlocks, threadPerBlock>>>(d_A, d_B, d_C, M, N, K, alpha, beta);
+            cudaEventRecord(stop, stream);
+            cudaError_t syncErr = cudaEventSynchronize(stop);
+            if (syncErr != cudaSuccess) {
+                fprintf(stderr, "Sync error: %s\n", cudaGetErrorString(syncErr));
+            }
+            cudaEventElapsedTime(&milliseconds, start, stop);
+            printf("01_coalesced execution time: %f ms\n", milliseconds);
         }
-
-        // Calculate the elapsed time between the start and stop events
-        cudaEventElapsedTime(&milliseconds, start, stop);
 
         cudaEventDestroy(start);
         cudaEventDestroy(stop);
@@ -105,7 +113,7 @@ int main() {
         write_mat("resAB", M, N, 32, reinterpret_cast<uint8_t*>(h_C));
         delete[] h_C;
 
-        printf("Kernel execution time: %f ms\n", milliseconds);
+        
     }
     else if (bitsA == 0)
     {

@@ -1,15 +1,13 @@
-#include <iostream>
-
 #include "kernels.cuh"
-#include "utils.h"
+
 
 __global__ void fp32gemm(
     float* A, float* B, float* C, 
     int M, int N, int K, 
     float alpha=1.0, float beta=0.0
 ){
-    size_t col = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t row = blockIdx.y * blockDim.y + threadIdx.y;
+    size_t row = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t col = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (row < M and col < N)
     {
