@@ -6,13 +6,13 @@ __global__ void fp32gemm(
     int M, int N, int K, 
     float alpha=1.0, float beta=0.0
 ){
-    size_t row = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t col = blockIdx.y * blockDim.y + threadIdx.y;
+    int row = blockIdx.x * blockDim.x + threadIdx.x;
+    int col = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (row < M and col < N)
     {
         float s = 0.0;
-        for (size_t k = 0; k < K; k++)
+        for (int k = 0; k < K; k++)
         {
             s += A[row * K + k] * B[col + k * N];
         }
@@ -25,13 +25,13 @@ __global__ void int32gemm(
     int M, int N, int K, 
     int alpha, int beta
 ) {
-    size_t col = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (row < M and col < N)
     {
         int s = 0;
-        for (size_t k = 0; k < K; k++)
+        for (int k = 0; k < K; k++)
         {
             s += A[row * K + k] * B[col + k * N];
         }

@@ -1,10 +1,20 @@
 #include <iostream>
+#include <cassert>
 
 #include <cuda.h>
 #include <cuda_runtime.h>
 
 #include "kernels.cuh"
 #include "utils.h"
+
+#define NAIVE true
+#define COALESCED true
+#define BLOCKTILED true
+
+// const int matrixA_rows = 8192;
+// const int matrixA_cols = 2048;
+// const int matrixB_rows = 2048;
+// const int matrixB_cols = 4096;
 
 
 // C = A @ B
@@ -33,16 +43,16 @@ int main() {
 
     // Define the number of threads in each dimension of the thread block
     // A 16x16 block gives 256 threads, a good starting point.
-    const int TILE_WIDTH = 16;
-    dim3 threadPerBlock(TILE_WIDTH, TILE_WIDTH, 1);
+    // const int TILE_WIDTH = 16;
+    // dim3 threadPerBlock(TILE_WIDTH, TILE_WIDTH, 1);
 
     // Calculate the number of blocks needed in each dimension of the grid
     // This uses a ceiling division to ensure the grid covers the entire output matrix C (MxN)
-    dim3 numBlocks(
-        (N + TILE_WIDTH - 1) / TILE_WIDTH,
-        (M + TILE_WIDTH - 1) / TILE_WIDTH,
-        1
-    );
+    // dim3 numBlocks(
+    //     (N + TILE_WIDTH - 1) / TILE_WIDTH,
+    //     (M + TILE_WIDTH - 1) / TILE_WIDTH,
+    //     1
+    // );
 
     
 
@@ -68,7 +78,16 @@ int main() {
         cudaMemcpy(d_B, h_B, K * N * sizeof(float), cudaMemcpyHostToDevice);
         cudaMemcpy(d_C, h_C, M * N * sizeof(float), cudaMemcpyHostToDevice);
 
+        if (NAIVE)
         {
+            const int TILE_WIDTH = 8;
+            dim3 threadPerBlock(TILE_WIDTH, TILE_WIDTH, 1);
+            dim3 numBlocks(
+                (M + TILE_WIDTH - 1) / TILE_WIDTH,
+                (N + TILE_WIDTH - 1) / TILE_WIDTH,
+                1
+            );
+
             // Record the start event in the stream
             cudaEventRecord(start, stream);
             fp32gemm<<<numBlocks, threadPerBlock>>>(d_A, d_B, d_C, M, N, K, alpha, beta);
@@ -89,17 +108,70 @@ int main() {
             cudaEventElapsedTime(&milliseconds, start, stop);
             printf("00_naive execution time: %f ms\n", milliseconds);
         }
+        if (COALESCED)
         {
+            const int TILE_WIDTH = 16;
+            dim3 threadPerBlock(TILE_WIDTH, TILE_WIDTH, 1);
+            dim3 numBlocks(
+                (N + TILE_WIDTH - 1) / TILE_WIDTH,
+                (M + TILE_WIDTH - 1) / TILE_WIDTH,
+                1
+            );
+
             cudaEventRecord(start, stream);
             coalesced_fp32gemm<<<numBlocks, threadPerBlock>>>(d_A, d_B, d_C, M, N, K, alpha, beta);
             cudaEventRecord(stop, stream);
             cudaError_t syncErr = cudaEventSynchronize(stop);
             if (syncErr != cudaSuccess) {
                 fprintf(stderr, "Sync error: %s\n", cudaGetErrorString(syncErr));
+            }cudaError_t kernelErr = cudaGetLastError();
+            if (kernelErr != cudaSuccess) {
+                fprintf(stderr, "01_coalesced execution error: %s\n", cudaGetErrorString(kernelErr));
             }
             cudaEventElapsedTime(&milliseconds, start, stop);
             printf("01_coalesced execution time: %f ms\n", milliseconds);
         }
+        if (BLOCKTILED)
+        {
+            const int tile_M = 32;
+            const int tile_N = 32;
+            const int tile_K = 64;
+            dim3 threadPerBlock(tile_M, tile_N, 1);
+            dim3 numBlocks(
+                (N + tile_N - 1) / tile_N,
+                (M + tile_M - 1) / tile_M,
+                1
+            );
+            // int shared_mem_size = (tile_M + tile_N) * tile_K * sizeof(float);
+            
+            // design assertion
+            // assert(tile_M == tile_N);
+            assert(tile_K % tile_M == 0);
+            assert(tile_K % tile_N == 0);
+            assert(N % tile_N == 0);
+            assert(M % tile_M == 0);
+            assert(K % tile_K == 0);
+            
+            
+            cudaEventRecord(start, stream);
+            blocktiled_fp32gemm<tile_M, tile_N, tile_K><<<numBlocks, threadPerBlock, 0>>>(
+                d_A, d_B, d_C, M, N, K, alpha, beta
+            );
+            cudaEventRecord(stop, stream);
+            cudaError_t syncErr = cudaEventSynchronize(stop);
+            if (syncErr != cudaSuccess) {
+                fprintf(stderr, "Sync error: %s\n", cudaGetErrorString(syncErr));
+            }
+            cudaError_t kernelErr = cudaGetLastError();
+            if (kernelErr != cudaSuccess) {
+                fprintf(stderr, "02_tiled execution error: %s\n", cudaGetErrorString(kernelErr));
+            }
+            cudaEventElapsedTime(&milliseconds, start, stop);
+            printf("02_tiled execution time: %f ms\n", milliseconds);
+
+        }
+        
+
 
         cudaEventDestroy(start);
         cudaEventDestroy(stop);
@@ -112,11 +184,16 @@ int main() {
 
         write_mat("resAB", M, N, 32, reinterpret_cast<uint8_t*>(h_C));
         delete[] h_C;
-
-        
     }
     else if (bitsA == 0)
     {
+        const int TILE_WIDTH = 16;
+        dim3 threadPerBlock(TILE_WIDTH, TILE_WIDTH, 1);
+        dim3 numBlocks(
+            (N + TILE_WIDTH - 1) / TILE_WIDTH,
+            (M + TILE_WIDTH - 1) / TILE_WIDTH,
+            1
+        );
         int *h_C, alpha = 1, beta = 0;
         int *d_A, *d_B, *d_C;
         h_C = new int[M * N];

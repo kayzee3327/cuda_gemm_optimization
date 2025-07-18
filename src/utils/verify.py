@@ -1,5 +1,6 @@
 import struct
 import numpy as np
+import time
 
 def read_special_binary(filepath):
     """
@@ -65,6 +66,7 @@ if __name__ == "__main__":
     resultA = read_special_binary("data/matrixA.bin")
     resultB = read_special_binary("data/matrixB.bin")
     resAB = read_special_binary("data/resAB.bin")
+    resAB_cublas = read_special_binary("data/resAB_cuBLAS.bin")
 
     if resultA and resultB and resAB:
         rA, cA, bA, matrixA = resultA
@@ -85,5 +87,16 @@ if __name__ == "__main__":
         print("Matrix data:")
         print(matrixAB)
 
-        print(np.allclose(matrixA @ matrixB, matrixAB))
+        rAB_cublas, cAB_cublas, bAB_cublas, matrixAB_cublas = resAB_cublas
+        print("\n--- Function Output AB_cublas ---")
+        print(f"Rows: {rAB_cublas}, Cols: {cAB_cublas}, Bits: {bAB_cublas}")
+        print("Matrix data:")
+        print(matrixAB_cublas)
+
+        t1 = time.time()
+        r = matrixA @ matrixB
+        t2 = time.time()
+        print(f"numpy matmul uses {t2-t1} s")
+        print(np.allclose(r, matrixAB))
+        print(np.allclose(matrixAB_cublas, matrixAB))
 

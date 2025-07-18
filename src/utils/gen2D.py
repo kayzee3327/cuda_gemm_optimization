@@ -2,15 +2,15 @@ import numpy as np
 import os
 import random
 
-rows = 2048
-cols = 4096
-matname = 'matrixB'
+rows = 8192
+cols = 2048
+matname = 'matrixA'
 bits = 32
 t = np.float32
 
 matpath = os.path.join(os.getcwd(), 'data', f'{matname}.bin')
 
-randmat = np.random.rand(rows, cols)
+randmat = 3 + 5 * np.random.randn(rows, cols)
 randmat = randmat.astype(t)
 # randmat = np.random.randint(1, 10, [rows, cols], dtype=np.int32)
 # print(f"Verifying dtype before save: {randmat.dtype}")

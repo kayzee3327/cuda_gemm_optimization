@@ -20,19 +20,31 @@ include_directories(
     ${CUDAToolkit_INCLUDE_DIRS}
 )
 
+add_library(utils_lib
+    src/utils/utils.cpp
+)
+
 add_executable(cuda_gemm
     src/main.cu
     src/00_naive.cu
     src/01_coalesced.cu
-    src/utils/utils.cpp
+    src/02_blocktiled.cu
 )
+
+# target_compile_options(cuda_gemm 
+#     PRIVATE 
+#     -Xptxas 
+#     --max-shared-mem-per-block-size=65536
+# )
+
+target_link_libraries(cuda_gemm PRIVATE utils_lib)
 
 add_executable(cublas_gemm
     src/baseline_cublas.cu
-    src/utils/utils.cpp
 )
 
 target_link_libraries(cublas_gemm
     PRIVATE
     CUDA::cublas
+    utils_lib
 )
