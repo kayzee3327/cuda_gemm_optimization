@@ -28,7 +28,7 @@ add_executable(cuda_gemm
     src/main.cu
     src/00_naive.cu
     src/01_coalesced.cu
-    src/02_blocktiled.cu
+    src/02_smem.cu
 )
 
 # target_compile_options(cuda_gemm 

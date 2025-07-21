@@ -9,7 +9,8 @@
 
 #define NAIVE true
 #define COALESCED true
-#define BLOCKTILED true
+#define SMEM true
+#define THREAD1D false
 
 // const int matrixA_rows = 8192;
 // const int matrixA_cols = 2048;
@@ -131,7 +132,7 @@ int main() {
             cudaEventElapsedTime(&milliseconds, start, stop);
             printf("01_coalesced execution time: %f ms\n", milliseconds);
         }
-        if (BLOCKTILED)
+        if (SMEM)
         {
             const int tile_M = 32;
             const int tile_N = 32;
@@ -145,7 +146,7 @@ int main() {
             // int shared_mem_size = (tile_M + tile_N) * tile_K * sizeof(float);
             
             // design assertion
-            // assert(tile_M == tile_N);
+            assert(tile_M == tile_N);
             assert(tile_K % tile_M == 0);
             assert(tile_K % tile_N == 0);
             assert(N % tile_N == 0);
@@ -154,7 +155,7 @@ int main() {
             
             
             cudaEventRecord(start, stream);
-            blocktiled_fp32gemm<tile_M, tile_N, tile_K><<<numBlocks, threadPerBlock, 0>>>(
+            smem_fp32gemm<tile_M, tile_N, tile_K><<<numBlocks, threadPerBlock, 0>>>(
                 d_A, d_B, d_C, M, N, K, alpha, beta
             );
             cudaEventRecord(stop, stream);
@@ -164,12 +165,17 @@ int main() {
             }
             cudaError_t kernelErr = cudaGetLastError();
             if (kernelErr != cudaSuccess) {
-                fprintf(stderr, "02_tiled execution error: %s\n", cudaGetErrorString(kernelErr));
+                fprintf(stderr, "02_smem execution error: %s\n", cudaGetErrorString(kernelErr));
             }
             cudaEventElapsedTime(&milliseconds, start, stop);
-            printf("02_tiled execution time: %f ms\n", milliseconds);
+            printf("02_smem execution time: %f ms\n", milliseconds);
 
         }
+        if (THREAD1D)
+        {
+            /* code */
+        }
+        
         
 
 

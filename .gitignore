@@ -4,3 +4,4 @@ cmp/
 
 .vscode/
 *.nsys-rep
+*.ncu-rep
