@@ -12,6 +12,8 @@
 
 3. 当grid大小的M与N交换后，为什么即使blockIdx对应不上，结果也能正确而且速度快上一倍？
 
+4. 如何在nsight compute查看bank conflict
+
 # cuda写法
 
 首先要理解内置参数`blockIdx`、`blockDim`、`threadIdx`，理解它们和n卡体系结构的联系。
@@ -224,4 +226,36 @@ $$
 
 另外，传入nvcc特有的flag时，需要分开写，不能包括在双引号中，不然会被当做unknown flag被传给gcc
 
+## 优化bank conflict
+
+在简单查看`ncu --set roofline -o gemm_report -f ./build/cuda_gemm`和`ncu --set detailed -o gemm_report -f ./build/cuda_gemm`的报告后，没有显示bank conflict
+
+## 最后
+
+现在的分块矩阵乘法有很多限制:
+
+```cpp
+assert(tile_M == tile_N);
+assert(tile_K % tile_M == 0);
+assert(tile_K % tile_N == 0);
+assert(N % tile_N == 0);
+assert(M % tile_M == 0);
+assert(K % tile_K == 0);
+```
+
+主要的问题是搬运数据时线程的分配，目前数据和形状都比较简单，暂不改写，未来的改写方法：对所有数据统一编号，按照统一编号分配给每个线程
+
+# 利用寄存器的空间：1D thread tiling
+
+每个thread block可以用满一个SM的65536个寄存器，总共有256kB空间。现在通过nsight compute发现每个thread只用了32个，即一个thread block用了32768个，而且现在的roofline显示是memory bound，那么我们可以考虑利用更多的register，使每个thread计算更多的数据，减轻global mem到shared mem的压力，一部分thread block搬运数据时另一部分可以计算，而不用等待下一轮搬运。
+
+核心思想是
+
+- 用更小的thread block来处理原来一样多的数据
+
+- 每个thread负责大于一个的数据，重复利用register的次数更多，从而使得整体arithmetic intensity更高
+
+- 引入thread tile，利用单个线程负责多个元素计算，增加计算访存比；当TM=8时，每执行共享内存As的8个次访存指令和共享内存Bs的1个访存指令，可执行8次计算指令，相比初始版本的计算访存比1:2，提高至8:9，有效隐藏访存延迟；
+
+但是在此之前需要使得原来的tiled matmul支持更多形状的矩阵分块。
 

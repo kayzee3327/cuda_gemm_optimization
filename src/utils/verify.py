@@ -1,6 +1,7 @@
 import struct
 import numpy as np
 import time
+import pandas as pd
 
 def read_special_binary(filepath):
     """
@@ -59,9 +60,7 @@ def read_special_binary(filepath):
         print(f"An error occurred: {e}")
         return None
 
-# --- How to use the function ---
-if __name__ == "__main__":
-
+def main():
     # --- Read the file using our function ---
     resultA = read_special_binary("data/matrixA.bin")
     resultB = read_special_binary("data/matrixB.bin")
@@ -100,3 +99,7 @@ if __name__ == "__main__":
         print(np.allclose(r, matrixAB))
         print(np.allclose(matrixAB_cublas, matrixAB))
 
+# --- How to use the function ---
+if __name__ == "__main__":
+    main()
+    
