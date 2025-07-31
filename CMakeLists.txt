@@ -24,11 +24,11 @@ add_library(utils_lib
     src/utils/utils.cpp
 )
 
-add_executable(cuda_gemm
-    src/main.cu
-    src/00_naive.cu
-    src/01_coalesced.cu
-    src/02_smem.cu
+add_executable(cuda_gemm_v1
+    src/v1/main.cu
+    src/v1/00_naive.cu
+    src/v1/01_coalesced.cu
+    src/v1/02_smem.cu
 )
 
 # target_compile_options(cuda_gemm 
@@ -37,7 +37,7 @@ add_executable(cuda_gemm
 #     --max-shared-mem-per-block-size=65536
 # )
 
-target_link_libraries(cuda_gemm PRIVATE utils_lib)
+target_link_libraries(cuda_gemm_v1 PRIVATE utils_lib)
 
 add_executable(cublas_gemm
     src/baseline_cublas.cu

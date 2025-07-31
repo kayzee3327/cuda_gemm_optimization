@@ -259,3 +259,7 @@ assert(K % tile_K == 0);
 
 但是在此之前需要使得原来的tiled matmul支持更多形状的矩阵分块。
 
+# 暂停一下，从cutlass学习标准写法
+
+转向`cutlass_diary.md`
+

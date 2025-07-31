@@ -4,7 +4,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
-#include "kernels.cuh"
+#include "v1/kernels.cuh"
 #include "utils.h"
 
 #define NAIVE true
@@ -152,10 +152,15 @@ int main() {
             assert(N % tile_N == 0);
             assert(M % tile_M == 0);
             assert(K % tile_K == 0);
-            
+
+            // assert(tile_K % tile_M == 0 or tile_M % tile_K == 0);
+            // assert(tile_K % tile_N == 0 or tile_N % tile_K == 0);
+            // assert(N % tile_N == 0);
+            // assert(M % tile_M == 0);
+            // assert(K % tile_K == 0);
             
             cudaEventRecord(start, stream);
-            smem_fp32gemm<tile_M, tile_N, tile_K><<<numBlocks, threadPerBlock, 0>>>(
+            smem_fp32gemm_with_constraints<tile_M, tile_N, tile_K><<<numBlocks, threadPerBlock>>>(
                 d_A, d_B, d_C, M, N, K, alpha, beta
             );
             cudaEventRecord(stop, stream);
@@ -173,7 +178,16 @@ int main() {
         }
         if (THREAD1D)
         {
-            /* code */
+            const int tile_M = 32;
+            const int tile_N = 32;
+            const int tile_K = 32;
+            const int tN = 16;
+            dim3 threadPerBlock(tile_M, tN, 1);
+            dim3 numBlocks(
+                (N + tile_N - 1) / tile_N,
+                (M + tile_M - 1) / tile_M,
+                1
+            );
         }
         
         

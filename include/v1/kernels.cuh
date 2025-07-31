@@ -48,18 +48,12 @@ __global__ void smem_fp32gemm_with_constraints(
         // A
         for (int j = 0; j < transAPerThread; j++)
         {
-            if (threadIdx.x + j * TILE_N < TILE_K)
-            {
-                tileA[threadIdx.y][threadIdx.x + j * TILE_N] = A[row * K + threadIdx.x + j * TILE_N + i * TILE_K];
-            }
+            tileA[threadIdx.y][threadIdx.x + j * TILE_N] = A[row * K + threadIdx.x + j * TILE_N + i * TILE_K];
         }
         // B
         for (int j = 0; j < transBPerThread; j++)
         {
-            if (threadIdx.y + j * TILE_M < TILE_K)
-            {
-                tileB[threadIdx.y + j * TILE_M][threadIdx.x] = B[(threadIdx.y + j * TILE_M + i * TILE_K) * N + col];
-            }
+            tileB[threadIdx.y + j * TILE_M][threadIdx.x] = B[(threadIdx.y + j * TILE_M + i * TILE_K) * N + col];
         }
 
         __syncthreads();
@@ -96,10 +90,7 @@ __global__ void smem_fp32gemm(
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int threadId = threadIdx.y * blockDim.x + threadIdx.x;
 
-    int transPerThread = (int)(ceilf(
-        (float)((TILE_M + TILE_N) * TILE_K) / 
-        (float)(TILE_M * TILE_N)
-    ));
+    int transPerThread = ((TILE_M + TILE_N) * TILE_K + TILE_M * TILE_N - 1U) / (TILE_M * TILE_N);
 
     float sum = 0.0;
 
@@ -140,6 +131,53 @@ __global__ void smem_fp32gemm(
     }
     C[row * N + col] = alpha * sum + beta * C[row * N + col];
     
+
+}
+
+
+// thread tiling 1D
+// assert(tile_N == TILE_M);
+// assert(tile_M % TM == 0);
+// assert(tile_K % tile_M == 0);
+// assert(tile_K % tile_N == 0);
+// assert(N % tile_N == 0);
+// assert(M % tile_M == 0);
+// assert(K % tile_K == 0);
+template<int TILE_M, int TILE_N, int TILE_K>
+__global__ void thread1D_fp32gemm_with_constraints(
+    float* A, float* B, float* C, 
+    int M, int N, int K, 
+    float alpha, float beta
+) {
+    __shared__ float tileA[TILE_M][TILE_K];
+    __shared__ float tileB[TILE_K][TILE_N];
+
+    int TN = blockDim.y;
+    int numThread = blockDim.x * blockDim.y;
+
+    int transPerThread = ((TILE_M + TILE_N) * TILE_K + numThread - 1) / (numThread);
+    
+    float sum[TILE_N / TN] = {0.0};
+
+    for (int i = 0; i < K / TILE_K; i++)
+    {
+        // transfer
+        // A and B
+        for (int j = 0; j < transPerThread / 2; j++)
+        {
+            tileA[threadIdx.y][threadIdx.x + j * TN] = A[];
+            tileB[][] = B[];
+        }
+
+
+        // compute
+
+
+        
+    }
+    
+    
+
 
 }
 
