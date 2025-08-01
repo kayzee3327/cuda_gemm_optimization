@@ -165,8 +165,8 @@ __global__ void thread1D_fp32gemm_with_constraints(
         // A and B
         for (int j = 0; j < transPerThread / 2; j++)
         {
-            tileA[threadIdx.y][threadIdx.x + j * TN] = A[];
-            tileB[][] = B[];
+            // tileA[threadIdx.y][threadIdx.x + j * TN] = A[];
+            // tileB[][] = B[];
         }
 
 

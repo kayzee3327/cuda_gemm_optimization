@@ -31,17 +31,18 @@ add_executable(cuda_gemm_v1
     src/v1/02_smem.cu
 )
 
-# target_compile_options(cuda_gemm 
-#     PRIVATE 
-#     -Xptxas 
-#     --max-shared-mem-per-block-size=65536
-# )
-
 target_link_libraries(cuda_gemm_v1 PRIVATE utils_lib)
+
+add_executable(cuda_gemm_v2
+    src/v2/main.cu
+    src/v2/01_global_mem.cu
+)
 
 add_executable(cublas_gemm
     src/baseline_cublas.cu
 )
+
+target_link_libraries(cuda_gemm_v2 PRIVATE utils_lib)
 
 target_link_libraries(cublas_gemm
     PRIVATE

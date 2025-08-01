@@ -2,9 +2,9 @@ import numpy as np
 import os
 import random
 
-rows = 8192
-cols = 2048
-matname = 'matrixA'
+rows = 2048
+cols = 4096
+matname = 'matrixB'
 bits = 32
 t = np.float32
 
