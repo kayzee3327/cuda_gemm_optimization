@@ -48,7 +48,7 @@ int main() {
         std::fill_n(h_C, M * N, 0.0f);
         const int fragment_M = 256;
         const int fragment_N = 128;
-        const int fragment_K = min(1024, K);
+        const int fragment_K = min(256, K);
         launchOuterProductSgemm(
             reinterpret_cast<float*>(h_A), 
             reinterpret_cast<float*>(h_B), 
