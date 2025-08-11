@@ -45,16 +45,27 @@ int main() {
             tb_width
         );
 
+        // std::fill_n(h_C, M * N, 0.0f);
+        // const int fragment_M = 256;
+        // const int fragment_N = 128;
+        // const int fragment_K = min(256, K);
+        // launchOuterProductSgemm(
+        //     reinterpret_cast<float*>(h_A), 
+        //     reinterpret_cast<float*>(h_B), 
+        //     reinterpret_cast<float*>(h_C),
+        //     M, N, K,
+        //     fragment_M, fragment_N, fragment_K
+        // );
+
         std::fill_n(h_C, M * N, 0.0f);
-        const int fragment_M = 256;
-        const int fragment_N = 128;
-        const int fragment_K = min(256, K);
-        launchOuterProductSgemm(
+        const int tM = 32;
+        const int tN = 32;
+        const int tK = 64;
+        launchThreadblockInnerSgemm<tM, tN, tK>(
             reinterpret_cast<float*>(h_A), 
             reinterpret_cast<float*>(h_B), 
             reinterpret_cast<float*>(h_C),
-            M, N, K,
-            fragment_M, fragment_N, fragment_K
+            M, N, K
         );
 
         write_mat("resAB", M, N, 32, reinterpret_cast<uint8_t*>(h_C));

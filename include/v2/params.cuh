@@ -16,10 +16,6 @@ struct Params {
     // used in GMEM
     int fragment_M, fragment_N, fragment_K;
 
-    // used in SMEM
-    int tM, tN, tK;
-    
-
     Params(
         dim3 grid_shape,
         dim3 threadblock_shape,

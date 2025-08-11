@@ -35,7 +35,6 @@ target_link_libraries(cuda_gemm_v1 PRIVATE utils_lib)
 
 add_executable(cuda_gemm_v2
     src/v2/main.cu
-    src/v2/01_global_mem.cu
 )
 
 add_executable(cublas_gemm

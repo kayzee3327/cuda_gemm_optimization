@@ -1,6 +1,7 @@
 #pragma once
 
 #include "v2/01_global_mem.cuh"
+#include "v2/02_shared_mem.cuh"
 #include "v2/params.cuh"
 #include "v2/launch.cuh"
 
@@ -26,7 +27,7 @@ void launchInnerProductSgemm(
         1.0, 0.0
     );
     
-    Launch<float, InnerProductSgemm> l;
+    Launch<float, GMEM::InnerProductSgemm> l;
     l.run(P);
 }
 
@@ -56,6 +57,30 @@ void launchOuterProductSgemm(
     P.fragment_N = fragment_N;
     P.fragment_K = fragment_K;
     
-    Launch<float, OuterProductSgemm> l;
+    Launch<float, GMEM::OuterProductSgemm> l;
+    l.run(P);
+}
+
+template<int tM, int tN, int tK>
+void launchThreadblockInnerSgemm(
+    float *A, float *B, float *C,
+    int M, int N, int K
+) {
+    dim3 threadblock_shape(tN * tM, 1);
+    dim3 grid_shape(
+        (N + tN - 1) / tN,
+        (M + tM - 1) / tM,
+        1
+    );
+
+    Params<float> P(
+        grid_shape,
+        threadblock_shape,
+        M, N, K,
+        A, B, C,
+        1.0, 0.0
+    );
+    
+    Launch<float, SMEM::ThreadblockInnerSgemm<tM, tN, tK> > l;
     l.run(P);
 }

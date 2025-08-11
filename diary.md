@@ -263,3 +263,7 @@ assert(K % tile_K == 0);
 
 转向`cutlass_diary.md`
 
+# tips
+
+1. 在将shared memory指针传递给class时，如果在这个指针的基础上计算所得一个新指针，那么新指针会被编译器优化到thread的local memory，所以在这种情况下只能通过下标访问指针
+
